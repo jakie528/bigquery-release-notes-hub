@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const notesContainer = document.getElementById('notes-timeline-container');
     const cacheStatusText = document.getElementById('status-text');
     const cacheIndicator = document.getElementById('cache-status-indicator');
+    const btnExportCsv = document.getElementById('btn-export-csv');
     
     // Composer Elements
     const tweetTextarea = document.getElementById('tweet-textarea');
@@ -109,10 +110,67 @@ document.addEventListener('DOMContentLoaded', () => {
         window.open(url, '_blank', 'width=550,height=420,toolbar=no,menubar=no,scrollbars=yes');
     });
 
+    // Export to CSV Button
+    btnExportCsv.addEventListener('click', () => {
+        if (!releaseNotes || releaseNotes.length === 0) return;
+
+        let csvRows = [
+            ['Date', 'Category', 'Update Content', 'Alternate Link']
+        ];
+
+        releaseNotes.forEach(entry => {
+            const date = entry.date;
+            const link = entry.link;
+
+            entry.updates.forEach(update => {
+                const matchesCategory = currentFilter === 'ALL' || update.category === currentFilter;
+                const matchesSearch = !searchQuery || 
+                    update.category.toLowerCase().includes(searchQuery) || 
+                    update.text.toLowerCase().includes(searchQuery);
+
+                if (matchesCategory && matchesSearch) {
+                    const escapedContent = update.text.replace(/"/g, '""');
+                    const escapedCategory = update.category.replace(/"/g, '""');
+                    const escapedDate = date.replace(/"/g, '""');
+                    const escapedLink = link.replace(/"/g, '""');
+                    csvRows.push([
+                        `"${escapedDate}"`,
+                        `"${escapedCategory}"`,
+                        `"${escapedContent}"`,
+                        `"${escapedLink}"`
+                    ]);
+                }
+            });
+        });
+
+        if (csvRows.length <= 1) {
+            showToast('No items matching filters to export.');
+            return;
+        }
+
+        const csvContent = csvRows.map(row => row.join(',')).join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        
+        const filterStr = currentFilter !== 'ALL' ? `_${currentFilter.toLowerCase()}` : '';
+        const searchStr = searchQuery ? `_search_${searchQuery.replace(/\s+/g, '_')}` : '';
+        const dateStr = new Date().toISOString().slice(0, 10);
+        
+        link.setAttribute("download", `bigquery_release_notes${filterStr}${searchStr}_${dateStr}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        showToast('CSV Export successful! 📥');
+    });
+
     // Fetch and Load Release Notes
     function fetchReleaseNotes(forceRefresh = false) {
         // Toggle loading state
         btnRefresh.disabled = true;
+        btnExportCsv.disabled = true;
         iconRefresh.classList.add('spinning');
         cacheStatusText.textContent = forceRefresh ? 'Refreshing feed...' : 'Loading feed...';
         
@@ -131,6 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(data => {
                 if (data.status === 'success') {
                     releaseNotes = data.notes;
+                    btnExportCsv.disabled = false;
                     
                     // Update Cache Indicator
                     const statusDot = cacheIndicator.querySelector('.status-dot');
@@ -148,6 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .catch(err => {
                 console.error(err);
+                btnExportCsv.disabled = true;
                 showToast('Error loading release notes feed.');
                 cacheStatusText.textContent = 'Connection error';
                 const statusDot = cacheIndicator.querySelector('.status-dot');
@@ -266,6 +326,12 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <div class="note-card-header">
                                     <span class="badge ${categoryClass}">${update.category}</span>
                                     <div class="card-actions">
+                                        <button class="btn-card-action btn-card-copy" data-id="${cardId}" title="Copy plaintext of this update to clipboard">
+                                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                            </svg>
+                                        </button>
                                         <button class="btn-card-action btn-card-tweet" data-id="${cardId}" title="Share this single update on X">
                                             <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
                                                 <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
@@ -322,6 +388,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 
                 toggleCardSelection(card);
+            });
+
+            // Single card copy button click
+            const btnCardCopy = card.querySelector('.btn-card-copy');
+            btnCardCopy.addEventListener('click', (e) => {
+                e.stopPropagation();
+
+                const date = card.dataset.date;
+                const category = card.dataset.category;
+                const bodyText = card.querySelector('.note-body').innerText.trim();
+
+                const copyText = `BigQuery Update (${date}) [${category}]:\n${bodyText}`;
+
+                navigator.clipboard.writeText(copyText).then(() => {
+                    showToast('Update copied to clipboard! 📋');
+                }).catch(err => {
+                    console.error('Failed to copy: ', err);
+                    showToast('Failed to copy text.');
+                });
             });
 
             // Single card instant tweet button click

@@ -800,6 +800,17 @@ body {
     cursor: not-allowed;
 }
 
+.btn-secondary.btn-export {
+    border-radius: 30px;
+    padding: 0.5rem 1.25rem;
+    font-size: 0.9rem;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.btn-secondary.btn-export:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.08);
+}
+
 .btn-tweet-action {
     background: var(--color-twitter);
     border: none;
