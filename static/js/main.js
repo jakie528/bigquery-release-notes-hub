@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const cacheStatusText = document.getElementById('status-text');
     const cacheIndicator = document.getElementById('cache-status-indicator');
     const btnExportCsv = document.getElementById('btn-export-csv');
+    const checkboxTheme = document.getElementById('checkbox-theme');
     
     // Composer Elements
     const tweetTextarea = document.getElementById('tweet-textarea');
@@ -42,11 +43,31 @@ document.addEventListener('DOMContentLoaded', () => {
         'General': '📝'
     };
 
-    // Initialize
+    // Theme Management Initialization
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    if (savedTheme === 'light') {
+        checkboxTheme.checked = true;
+        document.documentElement.setAttribute('data-theme', 'light');
+    } else {
+        checkboxTheme.checked = false;
+        document.documentElement.setAttribute('data-theme', 'dark');
+    }
+
+    // Initialize Notes Loading
     fetchReleaseNotes();
 
     // Event Listeners
     btnRefresh.addEventListener('click', () => fetchReleaseNotes(true));
+
+    checkboxTheme.addEventListener('change', () => {
+        if (checkboxTheme.checked) {
+            document.documentElement.setAttribute('data-theme', 'light');
+            localStorage.setItem('theme', 'light');
+        } else {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            localStorage.setItem('theme', 'dark');
+        }
+    });
     
     searchInput.addEventListener('input', (e) => {
         searchQuery = e.target.value.toLowerCase().trim();
