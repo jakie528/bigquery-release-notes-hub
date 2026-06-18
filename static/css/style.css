@@ -711,7 +711,8 @@ input:checked + .slider::before {
 /* Text and formatting in Note Card */
 .note-body {
     font-size: 0.925rem;
-    color: rgba(243, 244, 246, 0.9);
+    color: var(--color-text);
+    opacity: 0.9;
 }
 
 .note-body p {
@@ -734,8 +735,8 @@ input:checked + .slider::before {
 }
 
 .note-body code {
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--bg-input-search);
+    border: 1px solid var(--border-color);
     padding: 0.125rem 0.25rem;
     border-radius: 4px;
     font-family: monospace;
